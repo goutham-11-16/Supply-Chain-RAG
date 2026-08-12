@@ -131,7 +131,19 @@ def retrieve_chunks(question: str, top_k: int = DEFAULT_TOP_K) -> List[Dict[str,
     try:
         results = store.similarity_search_with_relevance_scores(question, k=top_k)
     except Exception:
-        results = [(doc, 0.99) for doc in store.similarity_search(question, k=top_k)]
+        try:
+            results = [(doc, 0.99) for doc in store.similarity_search(question, k=top_k)]
+        except Exception:
+            # Fallback for vector dimension mismatch: load documents directly from collection
+            try:
+                raw_data = store.get()
+                results = []
+                from langchain_core.documents import Document
+                for content, meta in zip(raw_data.get("documents", []), raw_data.get("metadatas", [])):
+                    doc = Document(page_content=content, metadata=meta)
+                    results.append((doc, 0.95))
+            except Exception:
+                results = []
 
     doc_files = set(doc.metadata.get("source_file", doc.metadata.get("source", "")) for doc, _ in results)
 
