@@ -304,12 +304,15 @@ Combines Review (Page 1) & Policy Handbook (Page 2):
 
 ## 20. Demo Video Link
 
-- **Demo Video URL**: *(Add your 3-minute video link here after recording)*
-- **Recommended 3-Minute Demo Script**:
-  - **~20 Seconds**: Introduce `Meridian_Procurement_Policy_Handbook_v4.2.pdf` and `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf`.
-  - **~40 Seconds**: Run `python scripts/reset_and_reingest.py`, show clean chunking output (22 chunks), launch Streamlit UI, and verify 22 vector chunks statistic in sidebar.
-  - **~90 Seconds**: Execute **Q5** (Kaveri Metals) showing dual-column citations from Review Page 2 and Handbook Page 2; execute **Q7** (Safety Stock math) showing the 30-day floor formula.
-  - **~30 Seconds**: Execute **Q10** (Salary trap query) showing honest refusal output, then expand **🐞 Developer & Debug Tools** to inspect distance scores and JSON API payload.
+[![Watch Supply Chain RAG Demo Video](https://img.shields.io/badge/▶️_Watch_Supply_Chain_RAG_Demo_Video-Google_Drive-4285F4?style=for-the-badge&logo=google-drive&logoColor=white)](https://drive.google.com/drive/folders/1qqQuVtzNUMUtFqDbNb10j7WM9xxqFDpd?usp=sharing)
+
+- **Official Demo Video Link**: [https://drive.google.com/drive/folders/1qqQuVtzNUMUtFqDbNb10j7WM9xxqFDpd?usp=sharing](https://drive.google.com/drive/folders/1qqQuVtzNUMUtFqDbNb10j7WM9xxqFDpd?usp=sharing)
+- **Video Duration**: ~3 Minutes
+- **Demonstration Walkthrough Flow**:
+  - **~20 Seconds**: Introduction of the two Meridian PDF documents (`Meridian_Procurement_Policy_Handbook_v4.2.pdf` and `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf`).
+  - **~40 Seconds**: Document ingestion using `python scripts/reset_and_reingest.py`, reporting 22 unique chunks stored in persistent ChromaDB.
+  - **~90 Seconds**: Live demonstration of cross-document reasoning queries (Q5 Kaveri Metals policy penalty & Q7 Safety Stock 30-day floor formula) with dual-column citations.
+  - **~30 Seconds**: Live demonstration of the trap question refusal (*"The information is not available in the uploaded documents."*) and developer debug tool payload inspection.
 
 ---
 
