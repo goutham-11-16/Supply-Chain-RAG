@@ -7,7 +7,6 @@ Prefixes chunks with document title to disambiguate Review vs Handbook.
 
 import os
 import sys
-import shutil
 import ssl
 import httpx
 from typing import List, Tuple, Any

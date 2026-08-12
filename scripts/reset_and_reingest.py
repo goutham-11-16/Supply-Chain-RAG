@@ -9,13 +9,14 @@ import sys
 # Change to project root directory
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
-sys.path.insert(0, PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 os.chdir(PROJECT_ROOT)
 
 from dotenv import load_dotenv
-load_dotenv()
-
 from ingest import ingest_files, auto_copy_provided_pdfs, get_collection_stats
+
+load_dotenv()
 
 def main():
     print("=========================================================================")

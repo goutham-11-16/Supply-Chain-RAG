@@ -11,13 +11,9 @@ Features:
 
 import os
 import json
-import tempfile
 import streamlit as st
 
-from ingest import (
-    ingest_files, get_collection_stats, load_existing_store,
-    get_embeddings, CHROMA_DIR, auto_copy_provided_pdfs
-)
+from ingest import ingest_files, get_collection_stats, auto_copy_provided_pdfs
 from rag import ask
 
 # ---------------------------------------------------------------------------
