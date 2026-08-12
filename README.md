@@ -1,64 +1,72 @@
 # Supply Chain Intelligence RAG System
 **HCLTech Assignment 2 — Meridian Components Pvt. Ltd.**
 
-An enterprise-grade internal Supply Chain Procurement & Intelligence Assistant built for **Meridian Components Pvt. Ltd.**, an automotive electronics control unit (ECU) and wiring harness manufacturer operating assembly plants in Chakan (Pune) and Hosur (Tamil Nadu).
+---
 
-The system indexes Meridian's internal procurement policy handbooks and operational performance reviews, allowing procurement buyers and executive managers to ask complex natural-language questions, retrieve document-grounded context, analyze cross-document policy implications, evaluate supplier penalties, calculate safety stock requirements, and inspect full source audit trails.
+## 1. Problem Statement
+
+Meridian Components Pvt. Ltd. is an automotive electronics manufacturer operating assembly plants in Chakan (Pune) and Hosur (Tamil Nadu). Procurement buyers and executive managers face challenges in rapidly retrieving operational metrics (supplier scorecards, line stoppages, lead times) and governing policy rules (approval tiers, quality penalty clauses, safety stock formulas) from fragmented PDF documents. Manual inspection leads to delayed decision-making, misinterpretation of quality penalties (e.g., Clause 6.3 cost recovery), and risk of hallucinated or incorrect policy enforcement.
 
 ---
 
-## 👤 Author Information
+## 2. Objective
 
-- **Author**: Goutham
-- **GitHub Profile**: [https://github.com/goutham-11-16](https://github.com/goutham-11-16)
-- **Repository URL**: [https://github.com/goutham-11-16/Supply-Chain-RAG](https://github.com/goutham-11-16/Supply-Chain-RAG)
-
----
-
-## 📌 Executive Summary & Core Capabilities
-
-- **Document-Grounded Q&A**: Generates answers strictly bound to uploaded internal documents with zero hallucinations.
-- **Cross-Document Reasoning**: Seamlessly synthesizes facts across operational data (*Supply Chain Review Q1*) and governing policy rules (*Procurement Handbook v4.2*).
-- **Dual-Column Source Citation Audit Trail**: Provides exact document names and page numbers for every cited fact.
-- **Top-K Retrieval Range Control**: Interactive control slider (range 1–12, default 6) with real-time vector chunk inspection.
-- **Automated Policy & Penalty Calculator**: Interactive rule-based engine evaluating supplier performance against Clause 6.1 (OTD warnings), Clause 6.2 (Rating Bands A–D), Clause 6.3 (Quality Cost Recovery & 100% inspection floor), and Clause 5.1 (Safety Stock math).
-- **Honest Refusal & Anti-Hallucination**: Automatically detects queries for unavailable information (e.g., executive salaries or unmentioned historical data) and issues strict, polite refusal notices.
+The objective of this assignment is to build a production-quality, beginner-level internal Supply Chain Procurement Assistant RAG system that:
+- Indexes Meridian's supplied PDF documents into a single persistent ChromaDB vector store.
+- Enables natural-language question answering grounded strictly in the source documents.
+- Synthesizes cross-document reasoning across operational data (*Supply Chain Review Q1*) and governing rules (*Procurement Policy Handbook v4.2*).
+- Provides exact document title and page number citations for every fact.
+- Implements interactive Top-K retrieval range control (1–12, default 6) with vector debug visibility.
+- Includes a deterministic Policy & Penalty Calculator for Clause 6.1–6.3 and safety stock evaluation.
+- Strictly refuses queries for unavailable information (e.g., executive salaries) without hallucinating.
 
 ---
 
-## 🏗️ System Architecture
+## 3. Solution Overview
 
-### 1. Vector RAG Pipeline Architecture
+The solution consists of an executive-grade Streamlit web portal backed by a LangChain & ChromaDB RAG pipeline:
+1. **Document Ingestion Engine**: Loads PDFs from `data/`, extracts text with PyPDF, and chunks content into 1200-character segments with 150-character overlap.
+2. **Vector Store & Embeddings**: Generates 1536-dimensional embeddings using OpenAI `text-embedding-3-small` and stores them in a single persistent Chroma collection (`supplychain_rag`).
+3. **Retrieval & Synthesis Engine**: Performs similarity search with smart cross-document balancing, injecting context into `GPT-4o` (`temperature = 0.1`) for grounded response generation.
+4. **Dual-Column Source Citation Audit Trail**: Displays exact source files and 1-indexed page numbers.
+5. **Deterministic Policy Calculator**: Evaluates supplier OTD rating bands, quality rework fees (₹120/unit), 100% inspection floors, and safety stock floor formulas ($SS = \max(LT \times 0.25, Floor)$).
+6. **FastAPI REST Endpoint**: Offers `POST /ask` for external integration preview.
+
+---
+
+## 4. Architecture / RAG Pipeline
+
 ```
-[ PDF Documents ] ──► [ PyPDF Text Extraction ] ──► [ Recursive Character Chunking ]
-                                                                  │ (Size: 1200, Overlap: 150)
-                                                                  ▼
-[ Grounded Response + Citations ] ◄── [ GPT-4o Synthesis ] ◄── [ ChromaDB Vector Search ]
-                                                               (text-embedding-3-small)
+[ PDF Documents in data/ ]
+           │
+           ▼
+[ PyPDF Text Extraction ]
+           │
+           ▼
+[ Recursive Character Text Splitter ] (Size: 1200, Overlap: 150)
+           │
+           ▼
+[ OpenAI text-embedding-3-small ] (1536 Dimensions)
+           │
+           ▼
+[ ChromaDB Persistent Vector Store ] (Collection: supplychain_rag)
+           │
+           ▼
+[ Smart Cross-Doc Similarity Retrieval ] (Configurable Top-K: 1–12, Default: 6)
+           │
+           ▼
+[ Strict System Prompt + Context Construction ]
+           │
+           ▼
+[ OpenAI GPT-4o LLM Engine ] (Temperature: 0.1)
+           │
+           ▼
+[ Grounded Answer + Source Citations Audit Trail ]
 ```
 
-1. **Document Loading**: PyPDF extracts raw text from PDF files located in `data/`.
-2. **Chunking & Preprocessing**: `RecursiveCharacterTextSplitter` segments text into 1200-character chunks with 150-character overlap, appending document metadata (title, filename, 1-indexed page number, document type).
-3. **Embedding Generation**: Chunks are embedded into 1536-dimensional vectors using OpenAI's `text-embedding-3-small`.
-4. **Vector Storage**: Vectors and metadata are stored in a persistent single-collection ChromaDB database (`supplychain_rag`).
-5. **Top-K Similarity Retrieval**: Similarity search retrieves the Top-K nearest vector chunks (configurable 1–12, default 6).
-6. **Smart Cross-Doc Balancing**: If a query mentions cross-document concepts (e.g., supplier scorecards and penalty clauses), targeted metadata searches ensure balanced coverage from both PDFs.
-7. **Context Construction & Synthesis**: Context is injected into a strict system prompt and passed to `GPT-4o` for grounded answer generation.
-
-### 2. Policy & Penalty Calculator (Deterministic Engine)
-Operating alongside the RAG pipeline, the Policy & Penalty Calculator is a deterministic, rule-based execution engine that calculates exact financial penalties, rating bands, and safety stock days using governing formulas from Section 5 & 6 of the Procurement Policy Handbook:
-$$\text{Safety Stock (Days)} = \max(\text{Lead Time Days} \times 0.25, \text{Mandatory Floor Days})$$
-
 ---
 
-## 🖼️ Application Screenshots
-
-### Executive RAG Control Panel & AI Query Analyst
-![Streamlit Executive RAG Portal](screenshots/app_screenshot.png)
-
----
-
-## 🛠️ Technologies Used
+## 5. Technologies Used
 
 - **Language & Runtime**: Python 3.11+
 - **Vector Database**: ChromaDB (`chromadb>=0.5.0`)
@@ -72,217 +80,228 @@ $$\text{Safety Stock (Days)} = \max(\text{Lead Time Days} \times 0.25, \text{Man
 
 ---
 
-## 📄 Documents Used
+## 6. Documents Used
 
-The system is pre-loaded with the two Meridian supply chain PDF documents located in `data/`:
-
-1. **`Meridian_Procurement_Policy_Handbook_v4.2.pdf`** *(Procurement Policy Handbook)*:
-   - Governing rules for supplier classification (Strategic, Critical, Standard, Tactical), approval authority thresholds, sourcing rules (dual-sourcing, share-of-wallet caps), rating bands (A, B, C, D), quality cost recovery (Clause 6.3), and safety stock formulas.
-2. **`Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf`** *(Operational Performance Review)*:
-   - Q1 FY2025-26 scorecard data for Apex Microelectronics, Kaveri Metals, Trident Circuit Boards, Sunrise Logistics, and Shenzhen Rui Electronics; line stoppage logs, inventory cover, and freight lane metrics.
+1. **`Meridian_Procurement_Policy_Handbook_v4.2.pdf`** *(Procurement Policy Handbook — 3 Pages)*:
+   - Contains supplier classification rules (Strategic, Critical, Standard, Tactical), approval authority thresholds, sourcing rules (dual-sourcing, share-of-wallet caps), performance rating bands (A, B, C, D), quality penalty rules (Clause 6.3), and safety stock formulas.
+2. **`Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf`** *(Operational Performance Review — 3 Pages)*:
+   - Contains Q1 scorecard performance data for Apex Microelectronics, Kaveri Metals, Trident Circuit Boards, Sunrise Logistics, and Shenzhen Rui Electronics; line stoppage logs, inventory cover, and freight lane metrics.
 
 ---
 
-## ⚙️ Chunking Configuration & Rationale
+## 7. PDF Ingestion & Chunking
 
 - **Chunk Size**: `1200` characters
 - **Chunk Overlap**: `150` characters
+- **Chunking Rationale**: *Chunk size 1200 with 150 overlap was selected to keep complete supplier scorecard tables, line-stoppage logs, and multi-paragraph policy clause sections intact within a single vector chunk without splitting numerical context or table headings across chunk boundaries.*
+- **Total Chunks Generated**: **22 unique chunks** stored in ChromaDB.
+
+---
+
+## 8. Embedding + ChromaDB
+
 - **Embedding Model**: `text-embedding-3-small` (1536 dimensions)
-- **LLM Model**: `GPT-4o` (`temperature = 0.1`)
-- **Vector Store Collection**: `supplychain_rag` (Single collection for both PDFs)
+- **Vector Store**: ChromaDB (`chromadb`)
+- **Collection Name**: `supplychain_rag` (Single collection for both PDFs)
+- **Persistence Path**: `chroma_db/` (Survives application restarts)
+- **Idempotent Ingestion**: `existing.delete_collection()` resets the vector store prior to re-indexing to prevent vector duplication.
+
+---
+
+## 9. Retrieval / Top-K
+
 - **Top-K Retrieval Range**: `1 – 12`
 - **Default Top-K**: `6`
-- **Persistence Path**: `chroma_db/`
-
-> **Rationale for Chunk Size & Overlap**: *Chunk size 1200 with 150 overlap was selected to keep complete supplier scorecard tables, line-stoppage logs, and multi-paragraph policy clause sections intact within a single vector chunk without splitting numerical context or table headings across chunk boundaries.*
+- **Smart Cross-Doc Balancing**: Automatically balances retrieved chunks across both PDF types when queries require multi-document synthesis (e.g., Kaveri Metals scorecards + Clause 6.3 policy penalties).
+- **Debug Visibility**: Detailed chunk inspection tab displays vector snippets, source metadata, and distance scores.
 
 ---
 
-## 🚀 Setup & Installation Instructions (Windows)
+## 10. GPT-4o Generation
 
-### Step 1: Clone / Extract Project
-Open PowerShell or Command Prompt in the project folder:
+- **LLM Engine**: OpenAI `GPT-4o`
+- **Temperature**: `0.1`
+- **Prompt Constraints**: Instructs the model to answer **ONLY** using retrieved context facts, cite document name and page number for every statement, and issue an honest refusal for unavailable facts.
+
+---
+
+## 11. Cross-Document Reasoning
+
+Cross-document reasoning is implemented by extracting operational facts from the *Supply Chain Review Q1* (e.g., Kaveri's 88.1% OTD & 1,150 PPM) and matching them against policy rules from the *Procurement Handbook v4.2* (Clause 6.1 warning & Clause 6.3 ₹120 rework cost + 100% inspection floor until 3 consecutive lots pass).
+
+---
+
+## 12. Policy & Penalty Calculator
+
+An interactive, deterministic rule-based calculator in Tab 3 of the Streamlit portal evaluates:
+- **Clause 6.1**: OTD < 90% triggers written warning & weekly review calls.
+- **Clause 6.2**: Rating Bands A (≥90%), B (75–89%), C (60–74%), D (<60%).
+- **Clause 6.3**: PPM > 500 triggers 100% rework debit @ ₹120/unit & 100% incoming inspection floor until 3 consecutive clean lots.
+- **Section 8 (Safety Stock Math)**: $SS = \max(LT \times 0.25, Floor)$.
+
+---
+
+## 13. Setup Instructions
+
 ```powershell
+# 1. Clone Repository
 git clone https://github.com/goutham-11-16/Supply-Chain-RAG.git
 cd Supply-Chain-RAG
-```
 
-### Step 2: Create & Activate Virtual Environment
-```powershell
+# 2. Create Virtual Environment
 python -m venv .venv
 .venv\Scripts\activate
-```
 
-### Step 3: Install Dependencies
-```powershell
+# 3. Install Dependencies
 pip install -r requirements.txt
-```
 
-### Step 4: Configure OpenAI API Key
-Copy `.env.example` to `.env`:
-```powershell
+# 4. Configure Environment
 copy .env.example .env
-```
-Open `.env` in any text editor and paste your HCLTech-provided API key:
-```ini
-OPENAI_API_KEY=your_hcltech_openai_api_key_here
-```
+# Edit .env and paste your OPENAI_API_KEY
 
-### Step 5: Ingest PDF Documents into Vector Store
-Run the clean ingestion script to build the ChromaDB vector database:
-```powershell
+# 5. Ingest Documents into ChromaDB
 python scripts/reset_and_reingest.py
-```
-*Expected Output:*
-```text
-[+] Found 2 PDF documents in data/ directory.
-[+] Chunking 6 pages (size=1200, overlap=150)...
-    Created 22 chunks
-[+] Embedding and storing in ChromaDB...
-    Stored 22 chunks in chroma_db
-✅ [SUCCESS] Vector store re-indexed successfully! (22 Total Chunks)
 ```
 
 ---
 
-## 🖥️ Running the Application
+## 14. Environment Variables
 
-### Option 1: Streamlit Executive Portal (Primary Web UI)
+Create a `.env` file from `.env.example`:
+```ini
+# OpenAI API Key (Required)
+OPENAI_API_KEY=your_hcltech_openai_api_key_here
+
+# Optional Overrides
+# OPENAI_BASE_URL=http://localhost:11434/v1
+# OPENAI_MODEL_NAME=gpt-4o
+# OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+```
+> **Security Note**: `.env` is listed in `.gitignore` and is **never** committed to GitHub.
+
+---
+
+## 15. How to Run
+
+### Streamlit Web Portal (Primary UI)
 ```powershell
 python -m streamlit run app.py
 ```
 Open browser at: **`http://localhost:8501`**
 
-### Option 2: FastAPI REST Server
-In a separate terminal window:
+### FastAPI REST Server
 ```powershell
 python api/main.py
 ```
-- API Base URL: `http://localhost:8000`
-- Interactive Swagger Docs: `http://localhost:8000/docs`
-- Endpoint: `POST http://localhost:8000/ask` with JSON body `{"question": "...", "top_k": 6}`
+Open browser at: **`http://localhost:8000/docs`**
 
 ---
 
-## 🔄 Re-Indexing / Clearing ChromaDB Vector Store
+## 16. Screenshots
 
-To wipe the vector database and re-ingest the PDFs cleanly at any time, run:
-```powershell
-python scripts/reset_and_reingest.py
-```
+![Streamlit Executive RAG Portal](screenshots/app_screenshot.png)
 
 ---
 
-## 📖 How to Use the Application
+## 17. 10 Assignment Questions
 
-1. **RAG Intelligence Analyst (Tab 2)**:
-   - Click any of the **10 Sample Question Preset Buttons** (Q1–Q10) to execute instantly.
-   - Or type a custom question in the query input box and click **⚡ Execute Query**.
-   - Adjust the **Top-K Chunks slider** (1–12) in the sidebar to control context window depth.
-   - Expand **🐞 Developer & Debug Tools** at the bottom to inspect retrieved vector text snippets, distance scores, and live REST API JSON payloads.
-2. **Policy & Penalty Calculator (Tab 3)**:
-   - Select a supplier (e.g., Kaveri Metals or Trident Circuit Boards) or enter custom metrics (OTD %, PPM defect rate, component criticality, lead time).
-   - Click **⚡ Calculate Policy Actions & Penalties** to run the deterministic evaluation engine.
-
----
-
-## 📝 Assignment Questions and Results (All 10 Questions)
-
-Below are the exact questions and answers produced by this application across all 10 HCLTech evaluation queries:
-
-### 📄 Single-Document Queries
-
-#### **Q1: Which supplier had the highest spend in Q1, and what was its on-time delivery percentage?**
-* **Answer**: Based on the retrieved context from **Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf** (Page 1), **Shenzhen Rui Electronics** had the highest spend at **₹21.9 crore**, with an on-time delivery percentage of **76.0%**. *(Apex Microelectronics had second highest spend at ₹18.4 crore with 91.2% OTD).*
-* **Sources**: `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 1`
-
-#### **Q2: How many line stoppages happened in Q1, what was the total downtime, and what were the causes?**
-* **Answer**: Based on **Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf** (Page 2), **7 line stoppage events** occurred totaling **41 hours of downtime**. Causes:
-  1. Microcontroller shortage — vessel roll-over at Shenzhen (4 hrs)
-  2. Microcontroller shortage — 9-day customs hold at Nhava Sheva (11 hrs)
-  3. PCB lot rejected at incoming inspection from Trident (3 hrs)
-  4. Microcontroller shortage — partial shipment received (6 hrs)
-  5. Transporter strike, Coimbatore–Pune corridor (5 hrs)
-  6. PCB lot rejected at incoming inspection from Trident (8 hrs)
-  7. Microcontroller shortage — allocation shortfall from supplier (4 hrs)
-* **Sources**: `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 2`
-
-#### **Q3: What is the approval authority for a purchase order worth ₹1.4 crore?**
-* **Answer**: Based on **Meridian_Procurement_Policy_Handbook_v4.2.pdf** (Page 1, Section 3.2), purchase orders valued above **₹1 crore and up to ₹5 crore** require approval from the **Chief Operating Officer (COO)**.
-* **Sources**: `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 1`
-
-#### **Q4: What are the four supplier classification categories, and what qualifies a supplier as Critical?**
-* **Answer**: Based on **Meridian_Procurement_Policy_Handbook_v4.2.pdf** (Page 1, Section 2.1):
-  - **Categories**: Strategic, Critical, Standard, and Tactical.
-  - **Critical Qualification**: Custom or single-sourced component supplier, lead times > 30 days, or supply failure directly halts manufacturing operations.
-* **Sources**: `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 1`
+1. **Q1**: Which supplier had the highest spend in Q1, and what was its on-time delivery percentage?
+2. **Q2**: How many line stoppages happened in Q1, what was the total downtime, and what were the causes?
+3. **Q3**: What is the approval authority for a purchase order worth ₹1.4 crore?
+4. **Q4**: What are the four supplier classification categories, and what qualifies a supplier as Critical?
+5. **Q5**: Kaveri Metals recorded 88.1% on-time delivery and 1,150 defects per million in Q1. Which policy clauses does this trigger, and what exactly must the buyer do?
+6. **Q6**: The microcontroller supplier is single-source. What does the sourcing policy require in this situation, and what is the company already doing about it?
+7. **Q7**: Microcontrollers are imported with a 46-day lead time. Using the policy formula, what is the required safety stock in days?
+8. **Q8**: Trident Circuit Boards had a defect rate of 640 parts per million in Q1. What is the policy consequence under Clause 6.3?
+9. **Q9**: Which suppliers would fall below the B rating band on on-time delivery alone, and what escalation applies?
+10. **Q10**: What is the annual salary of the Head of Procurement? *(Trap Question)*
 
 ---
 
-### 🔀 Cross-Document Reasoning Queries
+## 18. Answers Produced by Your System
 
-#### **Q5: Kaveri Metals recorded 88.1% on-time delivery and 1,150 defects per million in Q1. Which policy clauses does this trigger, and what exactly must the buyer do?**
-* **Answer**: Combines Review (Page 2) & Policy Handbook (Page 2):
-  - **Clause 6.1 / 6.2 (OTD 88.1% < 90%)**: Requires a written warning within 10 working days and weekly delivery review calls until performance exceeds 90% for one full quarter.
-  - **Clause 6.3 (Defects 1,150 PPM > 500 PPM)**: Requires supplier to bear 100% rework cost at ₹120 per unit. **100% incoming inspection must continue at the supplier's cost until three consecutive lots are accepted without defect.**
-* **Sources**: `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 2` & `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 2`
+#### **Q1 Answer**
+Based on **Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf** (Page 1), **Shenzhen Rui Electronics** had the highest spend at **₹21.9 crore**, with an on-time delivery percentage of **76.0%**. *(Apex Microelectronics had second highest spend at ₹18.4 crore with 91.2% OTD).*
+- *Sources*: `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 1`
 
-#### **Q6: The microcontroller supplier is single-source. What does the sourcing policy require in this situation, and what is the company already doing about it?**
-* **Answer**: Combines Review (Page 3) & Policy Handbook (Page 2):
-  - **Policy Requirement (Clause 7.1)**: Every part supplied by a Critical supplier must have a qualified second source within 12 months.
-  - **Company Action**: Completing qualification of Anh Long Semiconductors (Vietnam) as second source by 30 Sep 2025 and shifting 30% of Shenzhen volume to air freight.
-* **Sources**: `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 2` & `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 3`
+#### **Q2 Answer**
+Based on **Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf** (Page 2), **7 line stoppage events** occurred totaling **41 hours of downtime**. Causes:
+1. Microcontroller shortage — vessel roll-over at Shenzhen (4 hrs)
+2. Microcontroller shortage — 9-day customs hold at Nhava Sheva (11 hrs)
+3. PCB lot rejected at incoming inspection from Trident (3 hrs)
+4. Microcontroller shortage — partial shipment received (6 hrs)
+5. Transporter strike, Coimbatore–Pune corridor (5 hrs)
+6. PCB lot rejected at incoming inspection from Trident (8 hrs)
+7. Microcontroller shortage — allocation shortfall from supplier (4 hrs)
+- *Sources*: `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 2`
 
-#### **Q7: Microcontrollers are imported with a 46-day lead time. Using the policy formula, what is the required safety stock in days?**
-* **Answer**: Combines Review (Page 1) & Policy Handbook (Page 3):
-  - **Formula Calculation**: `Lead Time × 0.25` = 46 × 0.25 = **11.5 days**.
-  - **Minimum Floor Rule (Section 8)**: Imported Critical parts carry a mandatory minimum safety stock floor of **30 days**.
-  - **Result**: Policy states `max(11.5 days, 30 days) = 30 days`. Therefore, **30 days of safety stock** is required.
-* **Sources**: `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 3`
+#### **Q3 Answer**
+Based on **Meridian_Procurement_Policy_Handbook_v4.2.pdf** (Page 1, Section 3.2), purchase orders valued above **₹1 crore and up to ₹5 crore** require approval from the **Chief Operating Officer (COO)**.
+- *Sources*: `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 1`
 
-#### **Q8: Trident Circuit Boards had a defect rate of 640 parts per million in Q1. What is the policy consequence under Clause 6.3?**
-* **Answer**: Combines Review (Page 1) & Policy Handbook (Page 2):
-  - **Policy Consequence (Clause 6.3)**: Supplier bears 100% rework cost at ₹120 per affected unit, and 100% incoming inspection is imposed at supplier's cost until three consecutive lots are accepted without defect.
-* **Sources**: `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 1` & `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 2`
+#### **Q4 Answer**
+Based on **Meridian_Procurement_Policy_Handbook_v4.2.pdf** (Page 1, Section 2.1):
+- **Categories**: Strategic, Critical, Standard, and Tactical.
+- **Critical Qualification**: Custom or single-sourced component supplier, lead times > 30 days, or supply failure directly halts manufacturing operations.
+- *Sources*: `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 1`
 
-#### **Q9: Which suppliers would fall below the B rating band on on-time delivery alone, and what escalation applies?**
-* **Answer**: Combines Review (Page 1) & Policy Handbook (Page 2):
-  - **Result**: **None** of the suppliers fell below Rating Band B on OTD alone (Apex 91.2%, Sunrise 94.0%, Kaveri 88.1%, Trident 84.6%, Shenzhen 76.0%; all are ≥75%).
-  - **Escalation Path (if OTD < 75%)**: Band C requires an improvement plan; Band D (<60%) places supplier on business hold under Clause 6.4.
-* **Sources**: `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 1` & `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 2`
+#### **Q5 Answer**
+Combines Review (Page 2) & Policy Handbook (Page 2):
+- **Clause 6.1 / 6.2 (OTD 88.1% < 90%)**: Requires a written warning within 10 working days and weekly delivery review calls until performance exceeds 90% for one full quarter.
+- **Clause 6.3 (Defects 1,150 PPM > 500 PPM)**: Requires supplier to bear 100% rework cost at ₹120 per unit. **100% incoming inspection must continue at the supplier's cost until three consecutive lots are accepted without defect.**
+- *Sources*: `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 2` & `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 2`
+
+#### **Q6 Answer**
+Combines Review (Page 3) & Policy Handbook (Page 2):
+- **Policy Requirement (Clause 7.1)**: Every part supplied by a Critical supplier must have a qualified second source within 12 months.
+- **Company Action**: Completing qualification of Anh Long Semiconductors (Vietnam) as second source by 30 Sep 2025 and shifting 30% of Shenzhen volume to air freight.
+- *Sources*: `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 2` & `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 3`
+
+#### **Q7 Answer**
+Combines Review (Page 1) & Policy Handbook (Page 3):
+- **Formula Calculation**: `Lead Time × 0.25` = 46 × 0.25 = **11.5 days**.
+- **Minimum Floor Rule (Section 8)**: Imported Critical parts carry a mandatory minimum safety stock floor of **30 days**.
+- **Result**: Policy states `max(11.5 days, 30 days) = 30 days`. Therefore, **30 days of safety stock** is required.
+- *Sources*: `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 3`
+
+#### **Q8 Answer**
+Combines Review (Page 1) & Policy Handbook (Page 2):
+- **Policy Consequence (Clause 6.3)**: Supplier bears 100% rework cost at ₹120 per affected unit, and 100% incoming inspection is imposed at supplier's cost until three consecutive lots are accepted without defect.
+- *Sources*: `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 1` & `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 2`
+
+#### **Q9 Answer**
+Combines Review (Page 1) & Policy Handbook (Page 2):
+- **Result**: **None** of the suppliers fell below Rating Band B on OTD alone (Apex 91.2%, Sunrise 94.0%, Kaveri 88.1%, Trident 84.6%, Shenzhen 76.0%; all are ≥75%).
+- **Escalation Path (if OTD < 75%)**: Band C requires an improvement plan; Band D (<60%) places supplier on business hold under Clause 6.4.
+- *Sources*: `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf — Page 1` & `Meridian_Procurement_Policy_Handbook_v4.2.pdf — Page 2`
+
+#### **Q10 Answer (Trap Question)**
+> **"The information is not available in the uploaded documents."**
+- *Sources*: None (Honest Refusal)
 
 ---
 
-### 🛡️ Trap Question / Anti-Hallucination Refusal
+## 19. Incorrect Answers / Limitations
 
-#### **Q10: What is the annual salary of the Head of Procurement?**
-* **Answer**:
-  > **"The information is not available in the uploaded documents."**
-* **Sources**: None (Honest Refusal)
-
----
-
-## 🔍 Known Limitations & Evaluation Accuracy Note
-
-* **Query Accuracy**: **100% (10/10 questions answered correctly)**.
-* **Limitations**:
+- **System Evaluation Accuracy**: **100% (10/10 assignment questions answered correctly)**.
+- **Known Limitations**:
   - The vector search engine relies on vector embeddings matching context semantics. For custom out-of-domain queries unrelated to Meridian's supply chain, the anti-hallucination prompt strictly enforces honest refusal.
 
 ---
 
-## 📹 3-Minute Demo Video Script & Flow
+## 20. Demo Video Link
 
-Recommended demonstration structure for evaluators:
-
-1. **~20 Seconds — Document Overview**: Introduce `Meridian_Procurement_Policy_Handbook_v4.2.pdf` and `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf`.
-2. **~40 Seconds — Ingestion & Vector Count**: Run `python scripts/reset_and_reingest.py`, show clean chunking output (22 chunks), launch Streamlit UI, and verify 22 vector chunks statistic in the sidebar.
-3. **~90 Seconds — Cross-Document Reasoning & Audit Trail**:
-   - Execute **Q5** (Kaveri Metals) and show dual-column citations from both Review Page 2 and Policy Handbook Page 2.
-   - Execute **Q7** (Safety Stock math) and demonstrate the 30-day floor formula calculation.
-4. **~30 Seconds — Trap Refusal & Debug Tools**: Execute **Q10** (Salary trap query) to show honest refusal output, then expand **🐞 Developer & Debug Tools** to show vector distance scores and JSON payload.
+- **Demo Video URL**: *(Add your 3-minute video link here after recording)*
+- **Recommended 3-Minute Demo Script**:
+  - **~20 Seconds**: Introduce `Meridian_Procurement_Policy_Handbook_v4.2.pdf` and `Meridian_Supply_Chain_Review_Q1_FY2025-26.pdf`.
+  - **~40 Seconds**: Run `python scripts/reset_and_reingest.py`, show clean chunking output (22 chunks), launch Streamlit UI, and verify 22 vector chunks statistic in sidebar.
+  - **~90 Seconds**: Execute **Q5** (Kaveri Metals) showing dual-column citations from Review Page 2 and Handbook Page 2; execute **Q7** (Safety Stock math) showing the 30-day floor formula.
+  - **~30 Seconds**: Execute **Q10** (Salary trap query) showing honest refusal output, then expand **🐞 Developer & Debug Tools** to inspect distance scores and JSON API payload.
 
 ---
 
-## 🔐 Security & Confidentiality Notice
+## 21. GitHub / Author Details
 
-> **[IMPORTANT]**: The real OpenAI API key provided by HCLTech is **intentionally excluded** from this submission repository for security compliance. `.env` is listed in `.gitignore`. The reviewer must create a local `.env` file using `.env.example` and insert their API key prior to launching the application.
+- **Author**: Goutham
+- **GitHub Profile**: [https://github.com/goutham-11-16](https://github.com/goutham-11-16)
+- **Repository URL**: [https://github.com/goutham-11-16/Supply-Chain-RAG](https://github.com/goutham-11-16/Supply-Chain-RAG)
