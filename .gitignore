@@ -1,0 +1,17 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.git/
+chroma_db/
+logs/
+*.log
+.agents/
+.claude/
+diagnose_topk.py
+inspect_chroma_contents.py
+inspect_raw_chroma.py
+test_dedup_full.py
+test_fix_dedup.py
+test_minimal_fix.py
