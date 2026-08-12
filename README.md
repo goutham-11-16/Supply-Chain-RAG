@@ -199,7 +199,20 @@ Open browser at: **`http://localhost:8000/docs`**
 
 ## 16. Screenshots
 
-![Streamlit Executive RAG Portal](screenshots/app_screenshot.png)
+### 1. RAG Query Execution & Grounded Response
+![RAG Query Execution](screenshots/Screenshot%202026-08-12%20213924.png)
+
+### 2. Dual-Column Source Citations Audit Trail
+![Source Citations](screenshots/Screenshot%202026-08-12%20213943.png)
+
+### 3. Top-K Range Control & Developer Debug View
+![Top-K Control & Debug](screenshots/Screenshot%202026-08-12%20213951.png)
+
+### 4. Policy & Penalty Calculator Interface
+![Policy Calculator](screenshots/Screenshot%202026-08-12%20214006.png)
+
+### 5. Vector Database Statistics & Ingestion Controls
+![Sidebar Ingestion Stats](screenshots/Screenshot%202026-08-12%20214014.png)
 
 ---
 
@@ -302,6 +315,6 @@ Combines Review (Page 1) & Policy Handbook (Page 2):
 
 ## 21. GitHub / Author Details
 
-- **Author**: Goutham
+- **Author**: Esambadi Goutham Reddy
 - **GitHub Profile**: [https://github.com/goutham-11-16](https://github.com/goutham-11-16)
 - **Repository URL**: [https://github.com/goutham-11-16/Supply-Chain-RAG](https://github.com/goutham-11-16/Supply-Chain-RAG)
