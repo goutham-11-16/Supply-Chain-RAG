@@ -1,7 +1,13 @@
 import os
 import sys
-from dotenv import load_dotenv
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+os.chdir(PROJECT_ROOT)
+
+from dotenv import load_dotenv
 load_dotenv()
 
 if hasattr(sys.stdout, 'reconfigure'):
